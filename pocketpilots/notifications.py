@@ -22,6 +22,8 @@ async def send_fcm_notification(
     arrival_sec: float | None = None,
     tokens: list[str] | None = None,
     session: FlightSession | None = None,
+    event: str | None = None,
+    detail: str | None = None,
 ) -> dict:
     """Dispatch a notification to explicit tokens or every device in a session."""
     if tokens is None:
@@ -52,6 +54,13 @@ async def send_fcm_notification(
         "phase": phase_label,
         "segments": ",".join(map(str, segments)),
     }
+    if event:
+        data_payload["event"] = event
+    if detail:
+        data_payload["detail"] = detail
+    photo_pos = session.current_flight.get("photo_pos") if session else None
+    if photo_pos is not None and session.current_flight.get("id"):
+        data_payload["photo_pos"] = str(photo_pos)
 
     if not config.FIREBASE_INITIALIZED:
         print(

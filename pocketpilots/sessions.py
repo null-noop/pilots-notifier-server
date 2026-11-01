@@ -19,12 +19,12 @@ def load_sessions():
 
 
 def generate_unique_pair_code() -> str:
-    """Generate a human-readable 80-bit bearer credential."""
+    """Generate a human-readable 90-bit bearer credential."""
     alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
     for _ in range(1000):
-        code = "".join(secrets.choice(alphabet) for _ in range(16))
+        code = "".join(secrets.choice(alphabet) for _ in range(18))
         if code not in SESSIONS:
-            code = "-".join(code[index:index + 4] for index in range(0, 16, 4))
+            code = "-".join(code[index:index + 6] for index in range(0, 18, 6))
             return code
     raise RuntimeError("Unable to generate a unique pairing code")
 
@@ -41,7 +41,7 @@ def get_registered_session(pair_code: str) -> FlightSession | None:
     normalized_code = pair_code.strip().replace(" ", "").replace("-", "").upper()
     if not normalized_code:
         return None
-    if not config.ALLOW_LEGACY_PAIR_CODES and len(normalized_code) < 16:
+    if not config.ALLOW_LEGACY_PAIR_CODES and len(normalized_code) < 18:
         return None
     return SESSIONS.get(normalized_code)
 

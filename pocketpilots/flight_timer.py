@@ -8,7 +8,7 @@ from pocketpilots.config import LOCAL_TZ
 from pocketpilots.models import FlightSession
 from pocketpilots.notifications import send_fcm_notification
 from pocketpilots.sessions import SESSIONS, save_sessions
-from pocketpilots.telemetry import get_stage_from_bounds
+from pocketpilots.telemetry import describe_phase, get_stage_from_bounds
 
 
 async def handle_flight_timer(
@@ -37,6 +37,30 @@ async def handle_flight_timer(
             if status_code == 5:
                 progress_pct = 100.0
 
+            photo_sec = session.current_flight.get("photo_sec")
+            if (
+                photo_sec is not None
+                and not session.current_flight.get("photo_notified")
+                and current_elapsed >= photo_sec - 120
+            ):
+                session.current_flight["photo_notified"] = True
+                save_sessions(session)
+                # Skip the alert if the photo spot was already passed.
+                if current_elapsed < photo_sec:
+                    photo_name = session.current_flight.get("photo_name") or "photo spot"
+                    await send_fcm_notification(
+                        title=f"{photo_name} in 2 minutes",
+                        message=f"Photo spot ahead on {route}",
+                        status_code=session.current_flight.get("last_status") or status_code,
+                        phase_label=phase_label,
+                        segments=segments,
+                        route=route,
+                        progress=int(progress_pct),
+                        tokens=session.fcm_tokens,
+                        session=session,
+                        event="photo",
+                    )
+
             if session.current_flight.get("last_status") != status_code:
                 session.current_flight["last_status"] = status_code
                 session.current_flight["phase"] = phase_label
@@ -48,6 +72,7 @@ async def handle_flight_timer(
                 arrival_dt = datetime.now(LOCAL_TZ) + timedelta(seconds=remaining_sec)
                 arrival_str = arrival_dt.strftime("%I:%M %p").lstrip("0")
                 tokens = session.fcm_tokens
+                detail = describe_phase(status_code, session.current_flight)
                 if status_code == 5:
                     destination = route.split("➔")[1].strip() if "➔" in route else "destination"
                     await send_fcm_notification(
@@ -60,6 +85,7 @@ async def handle_flight_timer(
                         progress=100,
                         tokens=tokens,
                         session=session,
+                        detail=detail,
                     )
                     break
 
@@ -74,6 +100,7 @@ async def handle_flight_timer(
                     arrival_sec=arrival_sec,
                     tokens=tokens,
                     session=session,
+                    detail=detail,
                 )
 
             if current_elapsed >= total_sec:

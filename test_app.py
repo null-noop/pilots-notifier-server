@@ -78,8 +78,8 @@ class TestPocketPilotsNotificationServer(unittest.IsolatedAsyncioTestCase):
     def test_generate_unique_pair_code(self):
         code1 = app.generate_unique_pair_code()
         code2 = app.generate_unique_pair_code()
-        self.assertEqual(len(code1.replace("-", "")), 16)
-        self.assertEqual(len(code2.replace("-", "")), 16)
+        self.assertEqual(len(code1.replace("-", "")), 18)
+        self.assertEqual(len(code2.replace("-", "")), 18)
         self.assertTrue(code1.replace("-", "").isalnum())
 
     def test_flight_session_device_management(self):
@@ -130,7 +130,7 @@ class TestPocketPilotsNotificationServer(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(resp["status"], "success")
         self.assertTrue(resp["is_new_code"])
-        self.assertEqual(len(resp["pair_code"].replace("-", "")), 16)
+        self.assertEqual(len(resp["pair_code"].replace("-", "")), 18)
         self.assertEqual(resp["devices_count"], 1)
 
         # Check session exists in memory

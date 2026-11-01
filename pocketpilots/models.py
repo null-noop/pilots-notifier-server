@@ -81,6 +81,12 @@ class TokenUnregistration(BaseModel):
     code: str | None = None
 
 
+class PhotoTarget(BaseModel):
+    name: str
+    lat: float
+    lon: float
+
+
 class FlightPayload(BaseModel):
     id: str
     t0: float
@@ -89,6 +95,11 @@ class FlightPayload(BaseModel):
     dest: str
     planeType: str
     trk: list[float]
+    photo: PhotoTarget | None = None
+    depRunway: str | None = None
+    arrRunway: str | None = None
+    cruiseAlt: float | None = None
+    pay: int | None = None
     pair_code: str | None = None
     code: str | None = None
 

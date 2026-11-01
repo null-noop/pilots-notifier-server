@@ -54,7 +54,7 @@ async def get_dashboard(request: Request):
   <div class="grid">
     <section class="card wide">
       <h2>Pairing code</h2><p>Create a link code or inspect an existing session. Keep your code private.</p>
-      <div class="row"><button onclick="generateCode()">Generate new code</button><input id="targetCode" placeholder="Enter pairing code" maxlength="19"><button class="secondary" onclick="inspectCode()">Check status</button><button class="secondary" onclick="sendTestPush()">Send test push</button></div>
+      <div class="row"><button onclick="generateCode()">Generate new code</button><input id="targetCode" placeholder="Enter pairing code" maxlength="20"><button class="secondary" onclick="inspectCode()">Check status</button><button class="secondary" onclick="sendTestPush()">Send test push</button></div>
       <pre id="dash-log">Results will appear here.</pre>
     </section>
     <section class="card wide">

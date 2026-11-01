@@ -16,8 +16,10 @@ from pocketpilots.sessions import (generate_unique_pair_code,
                                    get_or_create_session,
                                    get_registered_session, resolve_session,
                                    save_sessions)
-from pocketpilots.telemetry import (analyze_flight_profile,
-                                    get_stage_from_bounds)
+from pocketpilots.telemetry import (analyze_flight_profile, describe_phase,
+                                    find_photo_time, get_stage_from_bounds,
+                                    phase_start_distances,
+                                    time_to_bar_position)
 
 router = APIRouter()
 
@@ -124,7 +126,21 @@ async def receive_flight_update(
     if session.current_flight.get("id") != payload.id:
         session.current_flight["id"] = payload.id
         session.current_flight["last_status"] = None
+        session.current_flight["photo_notified"] = False
+    photo_sec = None
+    photo_pos = None
+    if payload.photo:
+        photo_sec = find_photo_time(payload.trk, payload.photo.lat, payload.photo.lon)
+        if photo_sec is not None:
+            photo_pos = time_to_bar_position(photo_sec, total_sec, bounds, segments)
     session.current_flight.update({
+        "photo_name": payload.photo.name if payload.photo else None,
+        "photo_sec": photo_sec,
+        "photo_pos": photo_pos,
+        "dep_runway": payload.depRunway,
+        "arr_runway": payload.arrRunway,
+        "cruise_m": payload.cruiseAlt,
+        "pay": payload.pay,
         "last_status": status_code,
         "route": route_str,
         "phase": phase_label,
@@ -135,9 +151,11 @@ async def receive_flight_update(
         "arrival_sec": arrival_sec,
         "bounds": bounds,
         "segments": segments,
+        "phase_distances": phase_start_distances(payload.trk, bounds),
         "updated_at": datetime.now(LOCAL_TZ).isoformat(),
     })
     save_sessions(session)
+    detail = describe_phase(status_code, session.current_flight)
 
     arrival_dt = datetime.now(LOCAL_TZ) + timedelta(seconds=remaining_sec)
     arrival_str = arrival_dt.strftime("%I:%M %p").lstrip("0")
@@ -153,6 +171,7 @@ async def receive_flight_update(
             progress=100,
             tokens=tokens,
             session=session,
+            detail=detail,
         )
     else:
         await send_fcm_notification(
@@ -166,6 +185,7 @@ async def receive_flight_update(
             arrival_sec=arrival_sec,
             tokens=tokens,
             session=session,
+            detail=detail,
         )
 
     session.cancel_task()
