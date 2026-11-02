@@ -464,14 +464,6 @@ class TestPocketPilotsNotificationServer(unittest.IsolatedAsyncioTestCase):
         app.load_sessions()
         self.assertIsNone(app.SESSIONS[code].current_flight["id"])
 
-    async def test_html_dashboard_generation(self):
-        mock_req = MagicMock()
-        mock_req.headers = {"accept": "text/html"}
-        resp = await app.get_dashboard(mock_req)
-        # Verify dashboard returns HTML response with our hub elements
-        self.assertIsNotNone(resp)
-
-
     async def test_prune_unregistered_fcm_token(self):
         code = "PRUNE1"
         session = app.get_or_create_session(code)

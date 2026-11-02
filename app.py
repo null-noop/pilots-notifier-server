@@ -2,13 +2,11 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
 
 from pocketpilots import config
 from pocketpilots.config import (DB_PATH, FIREBASE_INITIALIZED, LOCAL_TZ,
                                  SERVICE_ACCOUNT_PATH, SESSIONS_FILE,
                                  credentials, firebase_admin, messaging)
-from pocketpilots.dashboard import get_dashboard
 from pocketpilots.flight_timer import (handle_flight_timer,
                                        resume_active_flight_timers)
 from pocketpilots.models import (FlightCancellation, FlightPayload,
@@ -41,8 +39,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
-app.add_api_route("/", get_dashboard, methods=["GET"], response_class=HTMLResponse)
-app.add_api_route("/pair", get_dashboard, methods=["GET"], response_class=HTMLResponse)
 
 
 @app.on_event("startup")
