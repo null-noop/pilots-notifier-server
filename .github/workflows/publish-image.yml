@@ -1,0 +1,70 @@
+name: Publish container image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tags and labels
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+            type=sha
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+      - name: Set package visibility to public
+        env:
+          GHCR_VISIBILITY_TOKEN: ${{ secrets.GHCR_VISIBILITY_TOKEN }}
+          PACKAGE_NAME: ${{ github.event.repository.name }}
+          PACKAGE_OWNER: ${{ github.repository_owner }}
+          OWNER_TYPE: ${{ github.event.repository.owner.type }}
+        run: |
+          if [[ -z "$GHCR_VISIBILITY_TOKEN" ]]; then
+            echo "Set the GHCR_VISIBILITY_TOKEN repository secret to a classic PAT with write:packages access."
+            exit 1
+          fi
+
+          if [[ "$OWNER_TYPE" == "Organization" ]]; then
+            package_endpoint="orgs/$PACKAGE_OWNER"
+          else
+            package_endpoint="user"
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            --request PATCH \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GHCR_VISIBILITY_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --data '{"visibility":"public"}' \
+            "https://api.github.com/$package_endpoint/packages/container/$PACKAGE_NAME/visibility"
