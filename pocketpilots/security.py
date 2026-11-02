@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi import HTTPException, Request
 
 FAILED_ATTEMPTS: dict[str, list[float]] = {}
+PAIR_CREATION_ATTEMPTS: dict[str, list[float]] = {}
 
 
 def _client_ip(request: Request) -> str:
@@ -29,3 +30,21 @@ def check_rate_limit(request: Request):
 def record_failed_attempt(request: Request):
     """Record a failed lookup against the caller's IP address."""
     FAILED_ATTEMPTS.setdefault(_client_ip(request), []).append(datetime.now().timestamp())
+
+
+def check_pair_creation_rate_limit(request: Request):
+    """Limit each client to five pair-code creations per minute."""
+    client_ip = _client_ip(request)
+    now = datetime.now().timestamp()
+    attempts = [
+        attempt
+        for attempt in PAIR_CREATION_ATTEMPTS.get(client_ip, [])
+        if now - attempt < 60
+    ]
+    if len(attempts) >= 5:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many pair codes created. Please wait 60 seconds before trying again.",
+        )
+    attempts.append(now)
+    PAIR_CREATION_ATTEMPTS[client_ip] = attempts

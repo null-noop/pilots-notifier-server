@@ -11,7 +11,8 @@ from pocketpilots.flight_timer import handle_flight_timer
 from pocketpilots.models import (FlightCancellation, FlightPayload,
                                  TokenRegistration, TokenUnregistration)
 from pocketpilots.notifications import send_fcm_notification
-from pocketpilots.security import check_rate_limit, record_failed_attempt
+from pocketpilots.security import (check_pair_creation_rate_limit,
+                                   check_rate_limit, record_failed_attempt)
 from pocketpilots.sessions import (generate_unique_pair_code,
                                    get_or_create_session,
                                    get_registered_session, resolve_session,
@@ -276,7 +277,8 @@ async def unregister_token(data: TokenUnregistration, request: Request):
 
 @router.post("/pair/new")
 @router.get("/pair/new")
-async def create_new_pair():
+async def create_new_pair(request: Request):
+    check_pair_creation_rate_limit(request)
     code = generate_unique_pair_code()
     get_or_create_session(code)
     save_sessions()

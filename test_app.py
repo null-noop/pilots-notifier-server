@@ -82,6 +82,24 @@ class TestPocketPilotsNotificationServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(code2.replace("-", "")), 18)
         self.assertTrue(code1.replace("-", "").isalnum())
 
+    async def test_pair_creation_is_rate_limited(self):
+        class RateLimitError(Exception):
+            def __init__(self, status_code, detail):
+                self.status_code = status_code
+                super().__init__(detail)
+
+        request = MagicMock()
+        request.client.host = "pair-creation-test"
+        with patch("pocketpilots.security.HTTPException", RateLimitError):
+            for _ in range(5):
+                await app.create_new_pair(request)
+
+            with self.assertRaises(RateLimitError) as context:
+                await app.create_new_pair(request)
+
+        self.assertEqual(context.exception.status_code, 429)
+        self.assertIn("Too many pair codes created", str(context.exception))
+
     def test_flight_session_device_management(self):
         session = app.FlightSession("TEST01")
         self.assertEqual(session.pair_code, "TEST01")
@@ -425,6 +443,7 @@ class TestPocketPilotsNotificationServer(unittest.IsolatedAsyncioTestCase):
             "progress": 48,
             "segments": [5, 22, 46, 22, 5],
         })
+        app.save_sessions(session)
         request = MagicMock()
         with patch("pocketpilots.routes.send_fcm_notification", return_value={"sent": 1}) as send:
             response = await app.cancel_flight(
@@ -440,6 +459,10 @@ class TestPocketPilotsNotificationServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(send.await_args.kwargs["phase_label"], "Canceled")
         self.assertEqual(send.await_args.kwargs["status_code"], 3)
         self.assertEqual(send.await_args.kwargs["progress"], 48)
+
+        app.SESSIONS.clear()
+        app.load_sessions()
+        self.assertIsNone(app.SESSIONS[code].current_flight["id"])
 
     async def test_html_dashboard_generation(self):
         mock_req = MagicMock()

@@ -145,6 +145,11 @@ def db_save_session(session: FlightSession):
                         flight.get("progress", 0),
                         flight.get("updated_at") or now_iso,
                     ))
+                else:
+                    conn.execute(
+                        "DELETE FROM active_flights WHERE pair_code=?",
+                        (session.pair_code,),
+                    )
     except Exception as exc:
         print(f"Error saving session {session.pair_code} to DB: {exc}")
 
