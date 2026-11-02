@@ -7,6 +7,10 @@ FastAPI service that accepts flight telemetry, tracks paired devices, and sends 
 - [Chrome extension](https://github.com/null-noop/pilots-notifier-extension)
 - [Android app](https://github.com/null-noop/pilots-notifier-android)
 
+## Compatibility
+
+Release versions in the `vX.X.0` format are compatible when the API, extension, and Android app share the same version.
+
 ## Public Instance
 
 A public version of this API is available at https://pilots-api.nullnoop.dev. It is the default server for the Android app, so you only need to self-host if you want your own instance.
